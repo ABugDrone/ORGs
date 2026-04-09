@@ -1,7 +1,14 @@
 import { app, BrowserWindow, ipcMain, shell, dialog, Notification, session } from 'electron'
-import { autoUpdater } from 'electron-updater'
 import path from 'path'
 import fs from 'fs'
+
+// electron-updater is optional — only available in packaged builds with publish config
+let autoUpdater: any = null
+try {
+  autoUpdater = require('electron-updater').autoUpdater
+} catch {
+  // Not available in portable/dev builds — skip silently
+}
 
 // Window state persistence
 const STATE_FILE = path.join(app.getPath('userData'), 'window-state.json')
@@ -117,7 +124,7 @@ app.whenReady().then(() => {
   setupIpcHandlers()
 
   // Auto-updater (production only)
-  if (!process.env.VITE_DEV_SERVER_URL) {
+  if (!process.env.VITE_DEV_SERVER_URL && autoUpdater) {
     autoUpdater.checkForUpdatesAndNotify()
   }
 
@@ -248,15 +255,16 @@ function setupIpcHandlers() {
   })
 }
 
-// Auto-updater events
-autoUpdater.on('update-available', () => {
-  mainWindow?.webContents.send('update-available')
-})
-
-autoUpdater.on('update-downloaded', () => {
-  mainWindow?.webContents.send('update-downloaded')
-})
+// Auto-updater events (only if available)
+if (autoUpdater) {
+  autoUpdater.on('update-available', () => {
+    mainWindow?.webContents.send('update-available')
+  })
+  autoUpdater.on('update-downloaded', () => {
+    mainWindow?.webContents.send('update-downloaded')
+  })
+}
 
 ipcMain.handle('install-update', () => {
-  autoUpdater.quitAndInstall()
+  if (autoUpdater) autoUpdater.quitAndInstall()
 })
