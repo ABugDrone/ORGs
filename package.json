@@ -34,15 +34,17 @@
       "output": "release"
     },
     "files": [
-      "dist/**/*",
-      "dist-electron/**/*.cjs",
-      "dist-electron/**/*.cjs.map",
-      "!dist-electron/**/*.js",
-      "!dist-electron/**/*.js.map",
-      "!node_modules/**/*"
+      {
+        "from": "dist",
+        "to": "dist",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "dist-electron",
+        "to": "dist-electron",
+        "filter": ["*.cjs", "*.cjs.map"]
+      }
     ],
-    "asar": true,
-    "asarUnpack": [],
     "extraMetadata": {
       "version": "1.0.0-beta"
     },

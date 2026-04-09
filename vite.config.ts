@@ -56,7 +56,7 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
-    base: isElectronBuild ? './' : '/',
+    base: './',
     build: {
       outDir: 'dist',
       emptyOutDir: true,
