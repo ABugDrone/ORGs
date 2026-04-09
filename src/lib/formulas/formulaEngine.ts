@@ -54,24 +54,77 @@ class FormulaEngine {
   }
 
   private evaluateArithmetic(expression: string, cells: Record<string, CellData>): number {
-    // Replace cell references with values
+    // Replace cell references with their numeric values
     let processedExpression = expression;
     const cellRefRegex = /[A-Z]+\d+/g;
     const matches = expression.match(cellRefRegex) || [];
-    
+
     for (const cellRef of matches) {
       const cellData = cells[cellRef];
       const value = cellData?.computed || cellData?.value || 0;
-      processedExpression = processedExpression.replace(cellRef, String(value));
+      const numericValue = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
+      processedExpression = processedExpression.replace(cellRef, String(numericValue));
     }
 
-    // Evaluate the expression safely
+    // Safe whitelist-based arithmetic evaluator — only allows numbers, +, -, *, /, (, ), spaces, and dots
+    return this.safeEval(processedExpression);
+  }
+
+  /**
+   * Safe arithmetic evaluator using a recursive descent parser.
+   * Only allows: digits, decimal points, +, -, *, /, (, ), whitespace.
+   * Rejects any expression containing other characters to prevent code injection.
+   */
+  private safeEval(expr: string): number {
+    const sanitized = expr.replace(/\s+/g, '');
+    // Strict whitelist: only digits, dot, +, -, *, /, (, )
+    if (!/^[0-9+\-*/().]+$/.test(sanitized)) {
+      return 0;
+    }
     try {
-      // Simple evaluation for basic arithmetic
-      return Function('"use strict"; return (' + processedExpression + ')')();
+      return this.parseExpr(sanitized, { pos: 0 });
     } catch {
       return 0;
     }
+  }
+
+  private parseExpr(expr: string, state: { pos: number }): number {
+    let result = this.parseTerm(expr, state);
+    while (state.pos < expr.length && (expr[state.pos] === '+' || expr[state.pos] === '-')) {
+      const op = expr[state.pos++];
+      const right = this.parseTerm(expr, state);
+      result = op === '+' ? result + right : result - right;
+    }
+    return result;
+  }
+
+  private parseTerm(expr: string, state: { pos: number }): number {
+    let result = this.parseFactor(expr, state);
+    while (state.pos < expr.length && (expr[state.pos] === '*' || expr[state.pos] === '/')) {
+      const op = expr[state.pos++];
+      const right = this.parseFactor(expr, state);
+      result = op === '*' ? result * right : (right !== 0 ? result / right : 0);
+    }
+    return result;
+  }
+
+  private parseFactor(expr: string, state: { pos: number }): number {
+    if (state.pos < expr.length && expr[state.pos] === '(') {
+      state.pos++; // consume '('
+      const result = this.parseExpr(expr, state);
+      if (state.pos < expr.length && expr[state.pos] === ')') state.pos++; // consume ')'
+      return result;
+    }
+    // Handle unary minus
+    if (state.pos < expr.length && expr[state.pos] === '-') {
+      state.pos++;
+      return -this.parseFactor(expr, state);
+    }
+    // Parse number
+    const start = state.pos;
+    while (state.pos < expr.length && /[0-9.]/.test(expr[state.pos])) state.pos++;
+    const numStr = expr.slice(start, state.pos);
+    return numStr ? parseFloat(numStr) : 0;
   }
 
   private extractRange(expression: string): string {

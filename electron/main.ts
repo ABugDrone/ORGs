@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, dialog, Notification } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, dialog, Notification, session } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import path from 'path'
 import fs from 'fs'
@@ -80,7 +80,39 @@ function createWindow() {
   })
 }
 
+// ── Path validation helpers ───────────────────────────────────────────────────
+
+/** In-memory allowed base directories, set via IPC from the renderer. */
+let allowedBaseDirs: string[] = [];
+
+/**
+ * Validates that a resolved file path starts with one of the allowed base dirs.
+ * Throws if the path escapes the allowed scope.
+ */
+function validatePath(filePath: string): string {
+  const resolved = path.resolve(filePath);
+  // If no folders configured yet (first run), allow all paths so setup can proceed
+  if (allowedBaseDirs.length === 0) return resolved;
+  const ok = allowedBaseDirs.some(base => resolved.startsWith(base + path.sep) || resolved === base);
+  if (!ok) {
+    throw new Error(`Path traversal rejected: "${resolved}" is outside allowed directories.`);
+  }
+  return resolved;
+}
+
 app.whenReady().then(() => {
+  // ── Content Security Policy ─────────────────────────────────────────────
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none';"
+        ],
+      },
+    });
+  });
+
   createWindow()
   setupIpcHandlers()
 
@@ -109,48 +141,71 @@ function setupIpcHandlers() {
     return result.canceled ? null : result.filePaths[0]
   })
 
+  // Set allowed base directories for path validation (called by renderer after setup)
+  ipcMain.handle('set-allowed-dirs', (_e, dirs: string[]) => {
+    allowedBaseDirs = dirs.map(d => path.resolve(d)).filter(Boolean);
+  })
+
   // File system operations
   ipcMain.handle('fs-read-file', async (_e, filePath: string) => {
-    return fs.readFileSync(filePath)
+    const safe = validatePath(filePath);
+    return fs.readFileSync(safe)
   })
 
   ipcMain.handle('fs-write-file', async (_e, filePath: string, data: Buffer) => {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true })
-    fs.writeFileSync(filePath, data)
+    const safe = validatePath(filePath);
+    fs.mkdirSync(path.dirname(safe), { recursive: true })
+    fs.writeFileSync(safe, data)
   })
 
   ipcMain.handle('fs-delete-file', async (_e, filePath: string) => {
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+    const safe = validatePath(filePath);
+    if (fs.existsSync(safe)) fs.unlinkSync(safe)
   })
 
   ipcMain.handle('fs-rename-file', async (_e, oldPath: string, newPath: string) => {
-    fs.renameSync(oldPath, newPath)
+    const safeOld = validatePath(oldPath);
+    const safeNew = validatePath(newPath);
+    fs.renameSync(safeOld, safeNew)
   })
 
   ipcMain.handle('fs-ensure-dir', async (_e, dirPath: string) => {
-    fs.mkdirSync(dirPath, { recursive: true })
+    const safe = validatePath(dirPath);
+    fs.mkdirSync(safe, { recursive: true })
   })
 
   ipcMain.handle('fs-file-exists', async (_e, filePath: string) => {
-    return fs.existsSync(filePath)
+    const safe = validatePath(filePath);
+    return fs.existsSync(safe)
   })
 
   ipcMain.handle('fs-copy-file', async (_e, src: string, dest: string) => {
-    fs.mkdirSync(path.dirname(dest), { recursive: true })
-    fs.copyFileSync(src, dest)
+    const safeSrc = validatePath(src);
+    const safeDest = validatePath(dest);
+    fs.mkdirSync(path.dirname(safeDest), { recursive: true })
+    fs.copyFileSync(safeSrc, safeDest)
   })
 
   ipcMain.handle('fs-read-dir', async (_e, dirPath: string) => {
-    if (!fs.existsSync(dirPath)) return []
-    return fs.readdirSync(dirPath, { withFileTypes: true }).map(d => ({
+    const safe = validatePath(dirPath);
+    if (!fs.existsSync(safe)) return []
+    return fs.readdirSync(safe, { withFileTypes: true }).map(d => ({
       name: d.name,
       isDirectory: d.isDirectory(),
     }))
   })
 
+  ipcMain.handle('fs-stat', async (_e, filePath: string) => {
+    const safe = validatePath(filePath);
+    if (!fs.existsSync(safe)) return null;
+    const stat = fs.statSync(safe);
+    return { size: stat.size, mtimeMs: stat.mtimeMs };
+  })
+
   // Open file with OS default application
   ipcMain.handle('open-with-default', async (_e, filePath: string) => {
-    await shell.openPath(filePath)
+    const safe = validatePath(filePath);
+    await shell.openPath(safe)
   })
 
   // Desktop notification

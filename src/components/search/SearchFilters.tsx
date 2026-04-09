@@ -6,19 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { useSearchContext } from '@/context/SearchContext';
-import type { SearchFilters as Filters } from '@/types/search';
 
 export function SearchFilters() {
   const { filters, updateFilters, clearFilters } = useSearchContext();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const activeFilterCount = Object.values(filters).filter(v => 
+  const activeFilterCount = Object.values(filters).filter(v =>
     Array.isArray(v) ? v.length > 0 : v !== undefined && v !== ''
   ).length;
 
   const formats = ['PDF', 'DOCX', 'XLSX', 'TXT', 'PNG', 'JPG'];
-  
-  const departments = JSON.parse(localStorage.getItem('departments') || '[]');
 
   return (
     <div className="w-full md:w-64 border-r bg-background p-4 space-y-4">
@@ -72,37 +69,12 @@ export function SearchFilters() {
                       updateFilters({
                         formats: checked
                           ? [...current, format]
-                          : current.filter(f => f !== format)
+                          : current.filter(f => f !== format),
                       });
                     }}
                   />
                   <label htmlFor={`format-${format}`} className="text-sm">
                     {format}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Department</Label>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {departments.map((dept: any) => (
-                <div key={dept.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`dept-${dept.id}`}
-                    checked={filters.departmentIds?.includes(dept.id) || false}
-                    onCheckedChange={(checked) => {
-                      const current = filters.departmentIds || [];
-                      updateFilters({
-                        departmentIds: checked
-                          ? [...current, dept.id]
-                          : current.filter(d => d !== dept.id)
-                      });
-                    }}
-                  />
-                  <label htmlFor={`dept-${dept.id}`} className="text-sm">
-                    {dept.name}
                   </label>
                 </div>
               ))}

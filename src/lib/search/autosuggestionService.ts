@@ -114,7 +114,7 @@ export class AutosuggestionService {
    */
   private loadRecentSearches(): void {
     try {
-      const stored = localStorage.getItem('recentSearches');
+      const stored = localStorage.getItem('orgs_recent_searches');
       if (stored) {
         this.recentSearches = JSON.parse(stored);
       }
@@ -129,7 +129,7 @@ export class AutosuggestionService {
    */
   private saveRecentSearches(): void {
     try {
-      localStorage.setItem('recentSearches', JSON.stringify(this.recentSearches));
+      localStorage.setItem('orgs_recent_searches', JSON.stringify(this.recentSearches));
     } catch (error) {
       console.error('Failed to save recent searches:', error);
     }

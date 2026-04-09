@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fileExists: (filePath: string) => ipcRenderer.invoke('fs-file-exists', filePath),
   copyFile: (src: string, dest: string) => ipcRenderer.invoke('fs-copy-file', src, dest),
   readDir: (dirPath: string) => ipcRenderer.invoke('fs-read-dir', dirPath),
+  statFile: (filePath: string) => ipcRenderer.invoke('fs-stat', filePath),
+  setAllowedDirs: (dirs: string[]) => ipcRenderer.invoke('set-allowed-dirs', dirs),
 
   // Open with OS default app
   openWithDefault: (filePath: string) => ipcRenderer.invoke('open-with-default', filePath),

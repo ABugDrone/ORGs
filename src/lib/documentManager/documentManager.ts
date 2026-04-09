@@ -2,7 +2,7 @@ import { fileIndexService } from '@/lib/fileIndex/fileIndexService';
 import { FileIndexEntry, getCategory, formatBytes } from '@/lib/fileIndex/types';
 import {
   ensureDir, writeFile, deleteFile as fsDeleteFile,
-  renameFile as fsRenameFile, copyFile, fileExists,
+  renameFile as fsRenameFile, copyFile, fileExists, statFile, readDir,
   isElectron,
 } from '@/lib/electron/electronBridge';
 
@@ -201,6 +201,38 @@ export async function moveFile(
   });
 }
 
+// ── MIME type helper ──────────────────────────────────────────────────────────
+
+function getMimeTypeForExtension(ext: string): string {
+  const map: Record<string, string> = {
+    PDF: 'application/pdf',
+    DOCX: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    DOC: 'application/msword',
+    XLSX: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    XLS: 'application/vnd.ms-excel',
+    PPTX: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    PPT: 'application/vnd.ms-powerpoint',
+    TXT: 'text/plain',
+    CSV: 'text/csv',
+    PNG: 'image/png',
+    JPG: 'image/jpeg',
+    JPEG: 'image/jpeg',
+    GIF: 'image/gif',
+    WEBP: 'image/webp',
+    SVG: 'image/svg+xml',
+    MP4: 'video/mp4',
+    MOV: 'video/quicktime',
+    AVI: 'video/x-msvideo',
+    MKV: 'video/x-matroska',
+    MP3: 'audio/mpeg',
+    WAV: 'audio/wav',
+    ZIP: 'application/zip',
+    RAR: 'application/x-rar-compressed',
+    '7Z': 'application/x-7z-compressed',
+  };
+  return map[ext.toUpperCase()] ?? 'application/octet-stream';
+}
+
 // ── Restore from sync folder ──────────────────────────────────────────────────
 
 export interface RestoreResult {
@@ -213,7 +245,6 @@ export async function restoreFromSyncFolder(
   primaryFolder: string,
   onProgress?: (pct: number) => void
 ): Promise<RestoreResult> {
-  const { readDir } = await import('@/lib/electron/electronBridge');
   let restored = 0;
   let failed = 0;
 
@@ -237,11 +268,16 @@ export async function restoreFromSyncFolder(
         await copyFile(`${srcFolder}${sep}${f.name}`, destPath);
 
         const ext = (f.name.split('.').pop() ?? 'bin').toUpperCase();
+        // Get actual file size via fs-stat IPC call
+        const fileStat = await statFile(destPath);
+        const sizeBytes = fileStat?.size ?? 0;
+        const mimeType = getMimeTypeForExtension(ext);
+
         await fileIndexService.add({
           name: f.name,
           extension: ext,
-          mimeType: '',
-          sizeBytes: 0,
+          mimeType,
+          sizeBytes,
           localPath: destPath,
           url: '',
           storageStatus: 'synced',

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 import { SearchIndexService } from '@/lib/search/searchIndexService';
 import { SearchService } from '@/lib/search/searchService';
 import { SearchCacheService } from '@/lib/search/searchCacheService';
+import { fileIndexService } from '@/lib/fileIndex/fileIndexService';
 import type { SearchFilters, SearchResultItem } from '@/types/search';
 
 interface SearchContextValue {
@@ -31,37 +32,38 @@ export function SearchProvider({ children }: SearchProviderProps) {
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Initialize search index with existing content
+  // Initialize search index with existing content using correct orgs_ keys
   useEffect(() => {
     const initializeIndex = () => {
-      // Get content from localStorage
-      const workHistory = JSON.parse(localStorage.getItem('workHistory') || '[]');
-      const reports = JSON.parse(localStorage.getItem('reports') || '[]');
-      
+      // Use correct namespaced key 'orgs_work_entries'
+      const workEntries = JSON.parse(localStorage.getItem('orgs_work_entries') || '[]');
+
+      // Also include files from fileIndexService (the IndexedDB source of truth)
+      const indexedFiles = fileIndexService.getAll();
+
       const indexedContent = [
-        ...workHistory.map((entry: any) => ({
+        ...workEntries.map((entry: any) => ({
           id: entry.id,
           type: 'document' as const,
-          title: entry.title || 'Untitled',
+          title: entry.name || entry.title || 'Untitled',
           content: entry.content || '',
           metadata: {
-            department: entry.department,
-            date: entry.date,
-            format: entry.format || 'text'
-          }
+            department: '',
+            date: entry.date || entry.createdAt,
+            format: entry.format || 'text',
+          },
         })),
-        ...reports.map((report: any) => ({
-          id: report.id,
-          type: 'report' as const,
-          title: report.title,
-          content: report.content || report.summary || '',
+        ...indexedFiles.map(file => ({
+          id: file.id,
+          type: 'document' as const,
+          title: file.name,
+          content: '',
           metadata: {
-            department: report.department,
-            subdepartment: report.subdepartment,
-            date: report.createdAt,
-            tags: report.tags || []
-          }
-        }))
+            department: '',
+            date: file.uploadedAt,
+            format: file.extension,
+          },
+        })),
       ];
 
       indexService.buildIndex(indexedContent);
@@ -74,21 +76,19 @@ export function SearchProvider({ children }: SearchProviderProps) {
     setLoading(true);
     setQuery(searchQuery);
 
-    // Simulate async search
     setTimeout(() => {
       const searchResults = searchService.search({
         text: searchQuery,
         filters,
-        options: {}
+        options: {},
       });
-      
-      // Flatten results from grouped structure
+
       const flatResults = [
         ...searchResults.documents,
         ...searchResults.reports,
-        ...searchResults.messages
+        ...searchResults.messages,
       ];
-      
+
       setResults(flatResults);
       setLoading(false);
     }, 100);
@@ -114,7 +114,7 @@ export function SearchProvider({ children }: SearchProviderProps) {
     executeSearch,
     updateQuery,
     updateFilters,
-    clearFilters
+    clearFilters,
   };
 
   return (

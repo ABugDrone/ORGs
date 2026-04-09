@@ -11,6 +11,7 @@ import {
   SortAsc, SortDesc, Grid3X3, List, Trash2, ExternalLink, ChevronRight,
 } from "lucide-react";
 import { fileIndexService } from "@/lib/fileIndex/fileIndexService";
+import { deleteFileEntry } from "@/lib/documentManager/documentManager";
 import { FileIndexEntry, FormatCategory } from "@/lib/fileIndex/types";
 import { openWithDefault } from "@/lib/electron/electronBridge";
 import { motion, AnimatePresence } from "framer-motion";
@@ -75,8 +76,8 @@ const FileBrowser: React.FC = () => {
     else if (entry.url) window.open(entry.url, '_blank');
   };
 
-  const handleDelete = (entry: FileIndexEntry) => {
-    fileIndexService.remove(entry.id);
+  const handleDelete = async (entry: FileIndexEntry) => {
+    await deleteFileEntry(entry.id);
     reload();
     toast.success(`${entry.name} removed`);
   };

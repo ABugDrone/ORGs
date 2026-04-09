@@ -28,7 +28,10 @@
     },
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
+      "dist-electron/**/*.cjs",
+      "dist-electron/**/*.cjs.map",
+      "!dist-electron/**/*.js",
+      "!dist-electron/**/*.js.map"
     ],
     "win": {
       "target": "nsis",

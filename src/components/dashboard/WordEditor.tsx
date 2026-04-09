@@ -1,4 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import TextAlign from "@tiptap/extension-text-align";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,24 +32,31 @@ interface WordEditorProps {
 const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel }) => {
   const [title, setTitle] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const editorRef = useRef<HTMLDivElement>(null);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+    ],
+    content: "",
+    editorProps: {
+      attributes: {
+        class:
+          "min-h-[400px] p-4 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring prose prose-sm max-w-none",
+      },
+    },
+  });
 
   useEffect(() => {
-    if (documentId) {
+    if (documentId && editor) {
       const doc = storageService.getDocument(documentId);
       if (doc) {
         setTitle(doc.title);
-        if (editorRef.current) {
-          editorRef.current.innerHTML = doc.content;
-        }
+        // Use TipTap's setContent — safe, no raw innerHTML assignment
+        editor.commands.setContent(doc.content);
       }
     }
-  }, [documentId]);
-
-  const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
-    editorRef.current?.focus();
-  };
+  }, [documentId, editor]);
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -54,12 +64,12 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
       return;
     }
 
-    if (!editorRef.current) return;
+    if (!editor) return;
 
     setIsSaving(true);
     try {
-      const content = editorRef.current.innerHTML;
-      const contentJson = { html: content }; // Simplified JSON format
+      const content = editor.getHTML();
+      const contentJson = editor.getJSON();
 
       if (documentId) {
         const existingDoc = storageService.getDocument(documentId);
@@ -77,17 +87,13 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
           title,
           content,
           contentJson,
-          author: "current-user", // In real app, get from auth context
+          author: "current-user",
         });
         toast.success("Document saved successfully");
       }
 
-      // Clear editor
       setTitle("");
-      if (editorRef.current) {
-        editorRef.current.innerHTML = "";
-      }
-
+      editor.commands.clearContent();
       onSave?.();
     } catch (error) {
       toast.error("Failed to save document");
@@ -99,11 +105,11 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
 
   const handleCancel = () => {
     setTitle("");
-    if (editorRef.current) {
-      editorRef.current.innerHTML = "";
-    }
+    editor?.commands.clearContent();
     onCancel?.();
   };
+
+  if (!editor) return null;
 
   return (
     <div className="space-y-4">
@@ -121,12 +127,12 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-1 p-2 border rounded-lg bg-muted/30">
-        {/* Text Formatting */}
         <Button
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => execCommand("bold")}
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          data-active={editor.isActive("bold")}
           title="Bold"
         >
           <Bold className="h-4 w-4" />
@@ -135,7 +141,8 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => execCommand("italic")}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          data-active={editor.isActive("italic")}
           title="Italic"
         >
           <Italic className="h-4 w-4" />
@@ -144,20 +151,21 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => execCommand("underline")}
-          title="Underline"
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          data-active={editor.isActive("strike")}
+          title="Strikethrough"
         >
           <Underline className="h-4 w-4" />
         </Button>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
-        {/* Headings */}
         <Button
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => execCommand("formatBlock", "h1")}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          data-active={editor.isActive("heading", { level: 1 })}
           title="Heading 1"
         >
           <Heading1 className="h-4 w-4" />
@@ -166,7 +174,8 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => execCommand("formatBlock", "h2")}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          data-active={editor.isActive("heading", { level: 2 })}
           title="Heading 2"
         >
           <Heading2 className="h-4 w-4" />
@@ -174,12 +183,12 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
-        {/* Lists */}
         <Button
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => execCommand("insertUnorderedList")}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          data-active={editor.isActive("bulletList")}
           title="Bullet List"
         >
           <List className="h-4 w-4" />
@@ -188,7 +197,8 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => execCommand("insertOrderedList")}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          data-active={editor.isActive("orderedList")}
           title="Numbered List"
         >
           <ListOrdered className="h-4 w-4" />
@@ -196,12 +206,12 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
-        {/* Alignment */}
         <Button
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => execCommand("justifyLeft")}
+          onClick={() => editor.chain().focus().setTextAlign("left").run()}
+          data-active={editor.isActive({ textAlign: "left" })}
           title="Align Left"
         >
           <AlignLeft className="h-4 w-4" />
@@ -210,7 +220,8 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => execCommand("justifyCenter")}
+          onClick={() => editor.chain().focus().setTextAlign("center").run()}
+          data-active={editor.isActive({ textAlign: "center" })}
           title="Align Center"
         >
           <AlignCenter className="h-4 w-4" />
@@ -219,24 +230,16 @@ const WordEditor: React.FC<WordEditorProps> = ({ documentId, onSave, onCancel })
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => execCommand("justifyRight")}
+          onClick={() => editor.chain().focus().setTextAlign("right").run()}
+          data-active={editor.isActive({ textAlign: "right" })}
           title="Align Right"
         >
           <AlignRight className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Editor */}
-      <div
-        ref={editorRef}
-        contentEditable
-        className="min-h-[400px] p-4 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring prose prose-sm max-w-none"
-        style={{
-          wordWrap: "break-word",
-          overflowWrap: "break-word",
-        }}
-        suppressContentEditableWarning
-      />
+      {/* TipTap Editor */}
+      <EditorContent editor={editor} />
 
       {/* Actions */}
       <div className="flex justify-end gap-2">

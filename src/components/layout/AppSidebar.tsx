@@ -8,7 +8,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { applyTheme, ThemeId } from "@/lib/themes/themeEngine";
+import { applyTheme, ThemeId, THEMES } from "@/lib/themes/themeEngine";
 
 const mainNav = [
   { title: "Dashboard", url: "/", icon: Home },
@@ -24,14 +24,38 @@ const AppSidebar: React.FC = () => {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
-  // Dark mode toggle — switches between default and dark themes
+  // Dark mode toggle — preserves the user's active theme family
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
 
   const toggleDark = () => {
     const currentTheme = (localStorage.getItem('orgs_theme') as ThemeId) || 'default';
     const accent = localStorage.getItem('orgs_accent') || '#10b981';
     const isDark = document.documentElement.classList.contains('dark');
-    const newTheme: ThemeId = isDark ? 'default' : 'dark';
+    const currentDef = THEMES.find(t => t.id === currentTheme);
+
+    let newTheme: ThemeId;
+    if (isDark) {
+      // Switching to light: map dark themes to their light counterpart
+      const lightCounterparts: Partial<Record<ThemeId, ThemeId>> = {
+        dark: 'default',
+        vista: 'win11',
+        neon: 'default',
+        glass: 'default',
+      };
+      newTheme = lightCounterparts[currentTheme] ?? (currentDef?.dark ? 'default' : currentTheme as ThemeId);
+    } else {
+      // Switching to dark: map light themes to their dark counterpart
+      const darkCounterparts: Partial<Record<ThemeId, ThemeId>> = {
+        default: 'dark',
+        win11: 'dark',
+        macos: 'dark',
+        win7: 'dark',
+        winxp: 'dark',
+        win95: 'dark',
+      };
+      newTheme = darkCounterparts[currentTheme] ?? 'dark';
+    }
+
     applyTheme(newTheme, accent);
     setDark(!isDark);
   };

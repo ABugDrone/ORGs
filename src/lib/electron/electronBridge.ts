@@ -16,6 +16,8 @@ export interface ElectronAPI {
   fileExists(filePath: string): Promise<boolean>
   copyFile(src: string, dest: string): Promise<void>
   readDir(dirPath: string): Promise<DirEntry[]>
+  statFile(filePath: string): Promise<{ size: number; mtimeMs: number } | null>
+  setAllowedDirs(dirs: string[]): Promise<void>
   openWithDefault(filePath: string): Promise<void>
   showNotification(title: string, body: string): Promise<void>
   storeSecret(key: string, value: string): Promise<void>
@@ -91,6 +93,16 @@ export async function copyFile(src: string, dest: string): Promise<void> {
 export async function readDir(dirPath: string): Promise<DirEntry[]> {
   if (!isElectron()) return []
   return window.electronAPI!.readDir(dirPath)
+}
+
+export async function statFile(filePath: string): Promise<{ size: number; mtimeMs: number } | null> {
+  if (!isElectron()) return null
+  return window.electronAPI!.statFile(filePath)
+}
+
+export async function setAllowedDirs(dirs: string[]): Promise<void> {
+  if (!isElectron()) return
+  return window.electronAPI!.setAllowedDirs(dirs)
 }
 
 export async function openWithDefault(filePath: string): Promise<void> {

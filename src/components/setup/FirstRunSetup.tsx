@@ -108,7 +108,13 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({ onComplete }) => {
                 </p>
               </div>
 
-              <Button className="w-full gap-2" onClick={() => setStep(2)}>
+              <Button className="w-full gap-2" onClick={() => {
+                if (!primaryFolder.trim()) {
+                  toast.error('Please select a storage folder before continuing.');
+                  return;
+                }
+                setStep(2);
+              }}>
                 Continue <ArrowRight className="h-4 w-4" />
               </Button>
             </CardContent>

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { fileIndexService } from '@/lib/fileIndex/fileIndexService';
+import { deleteFileEntry } from '@/lib/documentManager/documentManager';
 import { FileIndexEntry, FormatCategory } from '@/lib/fileIndex/types';
 import { openWithDefault } from '@/lib/electron/electronBridge';
 import { useSearchContext } from '@/context/SearchContext';
@@ -29,7 +30,13 @@ export default function SearchPage() {
   const [allFiles, setAllFiles] = useState<FileIndexEntry[]>([]);
   const [activeCategory, setActiveCategory] = useState<FormatCategory | 'All'>('All');
 
-  useEffect(() => { setAllFiles(fileIndexService.getAll()); }, []);
+  useEffect(() => {
+    const loadFiles = () => setAllFiles(fileIndexService.getAll());
+    loadFiles();
+    // Reload file list when the window regains focus so newly uploaded files appear
+    window.addEventListener('focus', loadFiles);
+    return () => window.removeEventListener('focus', loadFiles);
+  }, []);
 
   const results = useMemo(() => {
     let list = localQuery.trim() ? fileIndexService.search(localQuery) : allFiles;
@@ -44,8 +51,8 @@ export default function SearchPage() {
     else if (entry.url) window.open(entry.url, '_blank');
   };
 
-  const handleDelete = (entry: FileIndexEntry) => {
-    fileIndexService.remove(entry.id);
+  const handleDelete = async (entry: FileIndexEntry) => {
+    await deleteFileEntry(entry.id);
     setAllFiles(fileIndexService.getAll());
     toast.success(`${entry.name} removed`);
   };
