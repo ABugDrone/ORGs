@@ -1,4 +1,4 @@
-# CASI 360 - Care and Support Initiative 360
+# ORGs - Organizational Reports Gathering System
 ## Complete Project Documentation
 
 ---
@@ -8,75 +8,81 @@
 2. [Technology Stack](#technology-stack)
 3. [System Architecture](#system-architecture)
 4. [Core Features](#core-features)
-5. [User Roles & Permissions](#user-roles--permissions)
-6. [Module Documentation](#module-documentation)
-7. [Installation & Setup](#installation--setup)
-8. [Development Guidelines](#development-guidelines)
-9. [API Reference](#api-reference)
-10. [Security & Data Management](#security--data-management)
+5. [Module Documentation](#module-documentation)
+6. [Installation & Setup](#installation--setup)
+7. [Development Guidelines](#development-guidelines)
+8. [Security & Data Management](#security--data-management)
 
 ---
 
 ## Project Overview
 
 ### Description
-CASI 360 (Care and Support Initiative 360) is a comprehensive enterprise management system designed to streamline organizational operations, reporting, communication, and attendance tracking. The platform provides an intuitive interface that's simple enough for anyone to use while maintaining professional-grade functionality.
+ORGs (Organizational Reports Gathering System) is a desktop file organization system that helps users manage, organize, and access all their documents in one place. Files are automatically sorted into format-based folders on the local PC, with optional cloud backup to Google Drive or Microsoft OneDrive. The app provides instant file access via global search, one-click opening, and a calendar-based upload history view. It is packaged as an installable desktop application using Electron.
 
 ### Vision
-To create a simplified, intuitive alternative to Microsoft Access that enables organizations to manage their daily operations, reports, communications, and workforce attendance with minimal training required.
+A single organized desktop file system inside one app — no more hunting through folders. Every file is one search or one click away, with cloud backup ensuring nothing is ever lost.
 
 ### Key Objectives
-- Simplify departmental reporting and approval workflows
-- Automate attendance tracking with approval mechanisms
-- Enable seamless internal communication
-- Provide comprehensive administrative controls
-- Maintain data integrity through approval systems
+- Automatically organize files into format-based subfolders (PDF/, DOCX/, MP4/, etc.)
+- Provide instant file access via global search and calendar history
+- Use cloud storage (Google Drive / OneDrive) as backup with weekend reminders
+- Secure file access via cloud account login (Google / Microsoft)
+- Enable seamless cross-device file restoration with automatic configuration
+- Package as an installable Electron desktop app for Windows, macOS, and Linux
 
 ---
 
 ## Technology Stack
 
+### Desktop Shell
+- **Electron** - Chromium-based desktop application wrapper
+- **electron-builder** - Cross-platform installer packaging (.exe, .dmg, .AppImage)
+
 ### Frontend Framework
-- **React 18.3.1** - Modern UI library for building interactive interfaces
-- **TypeScript 5.8.3** - Type-safe JavaScript for robust code
-- **Vite 5.4.19** - Fast build tool and development server
+- **React 18.3.1** - UI library
+- **TypeScript 5.8.3** - Type-safe JavaScript
+- **Vite 5.4.19** - Build tool and development server
 
 ### UI & Styling
 - **Tailwind CSS 3.4.17** - Utility-first CSS framework
-- **shadcn/ui** - High-quality, accessible component library
-- **Radix UI** - Unstyled, accessible component primitives
-- **Framer Motion 12.34.3** - Animation library for smooth transitions
-- **Lucide React 0.462.0** - Beautiful icon library
+- **shadcn/ui** - Accessible component library
+- **Radix UI** - Unstyled accessible component primitives
+- **Framer Motion 12.34.3** - Animations
+- **Lucide React 0.462.0** - Icon library
 
 ### State Management & Data
 - **React Context API** - Global state management
-- **TanStack Query 5.83.0** - Server state management
-- **LocalStorage** - Client-side data persistence
+- **IndexedDB** - File index persistence (via idb)
+- **Electron safeStorage** - Secure token storage (OS keychain)
 
 ### Routing & Navigation
-- **React Router DOM 6.30.1** - Client-side routing with smart URLs
+- **React Router DOM 6.30.1** - Client-side routing
 
 ### Rich Text & Editors
-- **TipTap 3.20.0** - Extensible rich text editor
-- **Canvas API** - Design editor functionality
+- **TipTap 3.20.0** - Rich text editor (Word Editor)
+- **Canvas API** - Design editor
+
+### Cloud Integration
+- **Google Drive API** - Cloud backup (OAuth 2.0 + PKCE)
+- **Microsoft Graph API** - OneDrive backup (OAuth 2.0 + MSAL)
 
 ### Form Handling
-- **React Hook Form 7.61.1** - Performant form management
+- **React Hook Form 7.61.1** - Form management
 - **Zod 3.25.76** - Schema validation
 
 ### Date & Time
-- **date-fns 3.6.0** - Modern date utility library
-- **React Day Picker 8.10.1** - Flexible date picker
+- **date-fns 3.6.0** - Date utilities
+- **React Day Picker 8.10.1** - Date picker
+
+### Testing
+- **Vitest 3.2.4** - Unit and property-based testing
+- **fast-check** - Property-based testing
+- **Testing Library** - Component testing
 
 ### Additional Libraries
-- **Recharts 2.15.4** - Charting library for data visualization
+- **Recharts 2.15.4** - Data visualization
 - **Sonner 1.7.4** - Toast notifications
-- **cmdk 1.1.1** - Command menu interface
-
-### Development Tools
-- **ESLint 9.32.0** - Code linting
-- **Vitest 3.2.4** - Unit testing framework
-- **Testing Library** - Component testing utilities
 
 ---
 
@@ -84,378 +90,235 @@ To create a simplified, intuitive alternative to Microsoft Access that enables o
 
 ### Application Structure
 ```
-casi-360/
-├── src/
-│   ├── components/          # Reusable UI components
-│   │   ├── admin/          # Admin panel components
-│   │   ├── attendance/     # Attendance system components
-│   │   ├── dashboard/      # Dashboard widgets
-│   │   ├── layout/         # Layout components
-│   │   ├── reports/        # Report components
-│   │   ├── search/         # Search functionality
-│   │   └── ui/             # Base UI components (shadcn)
-│   ├── context/            # React Context providers
-│   ├── hooks/              # Custom React hooks
-│   ├── lib/                # Utility libraries
-│   │   ├── formulas/       # Formula engine
-│   │   ├── reports/        # Report utilities
-│   │   ├── search/         # Search services
-│   │   ├── storage/        # Storage service
-│   │   └── validation/     # Validation service
-│   ├── pages/              # Page components
-│   ├── types/              # TypeScript type definitions
-│   └── data/               # Mock data and constants
-├── public/                 # Static assets
-└── .kiro/                  # Specification documents
-    └── specs/              # Feature specifications
+orgs/
+├── electron/
+│   ├── main.ts              # Electron main process entry point
+│   ├── preload.ts           # Context bridge (window.electronAPI)
+│   └── ipc/
+│       ├── fileSystem.ts    # File system IPC handlers
+│       ├── oauth.ts         # OAuth flow IPC handlers
+│       ├── notifications.ts # Desktop notification handlers
+│       └── updater.ts       # Auto-update handlers
+├── src/                     # React renderer process
+│   ├── components/
+│   │   ├── dashboard/       # File list, calendar, upload zone
+│   │   ├── search/          # Global search bar and results
+│   │   ├── editors/         # Word, Sheet, Design editors
+│   │   ├── layout/          # App shell and navigation
+│   │   └── ui/              # Base UI components (shadcn)
+│   ├── context/             # React Context providers
+│   ├── hooks/               # Custom React hooks
+│   ├── lib/
+│   │   ├── electron/        # IPC bridge wrapper
+│   │   ├── fileIndex/       # IndexedDB file registry
+│   │   ├── search/          # Search indexing and query
+│   │   ├── cloud/           # Cloud backup and OAuth
+│   │   ├── storage/         # Local storage service
+│   │   └── validation/      # Input validation
+│   ├── pages/               # Page components
+│   └── types/               # TypeScript type definitions
+├── public/                  # Static assets
+└── .kiro/specs/             # Feature specifications
 ```
 
-### Data Flow Architecture
-1. **User Interface Layer** - React components with TypeScript
-2. **State Management Layer** - Context API for global state
-3. **Business Logic Layer** - Custom hooks and services
-4. **Data Persistence Layer** - LocalStorage with structured schemas
-5. **Routing Layer** - React Router with smart URLs
+### Data Flow
+1. **File Upload** → Document_Manager validates → written to Format_Folder → File_Index updated → queued for cloud backup
+2. **File Search** → Search_Engine queries File_Index → results ranked → File_Viewer opens selected file
+3. **Cloud Backup** → Backup Queue dequeues → Cloud_Security verifies auth → file uploaded → File_Index updated
+4. **Cross-Device Restore** → User logs in → Cloud_Security verifies → files downloaded → Format_Folders recreated → File_Index rebuilt
 
-### Design Patterns
-- **Provider Pattern** - Context providers for global state
-- **Custom Hooks Pattern** - Reusable logic encapsulation
-- **Compound Components** - Complex UI component composition
-- **Render Props** - Flexible component rendering
-- **Higher-Order Components** - Component enhancement
+### Key Data Models
+
+#### FileIndexEntry
+```typescript
+interface FileIndexEntry {
+  id: string;                  // UUID v4
+  name: string;
+  extension: string;           // Uppercase, e.g. "PDF"
+  mimeType: string;
+  sizeBytes: number;
+  localPath: string | null;
+  cloudPath: string | null;
+  formatFolder: string;
+  storageStatus: 'local_only' | 'backed_up' | 'cloud_only' | 'missing' | 'restoration_failed';
+  uploadedAt: string;          // ISO 8601
+  lastBackedUpAt: string | null;
+  ownership: FileOwnershipMetadata;
+}
+```
+
+#### FileOwnershipMetadata
+```typescript
+interface FileOwnershipMetadata {
+  cloudAccountId: string;      // Google sub or Microsoft oid
+  cloudProvider: 'google' | 'microsoft';
+  deviceId: string;            // Stable per-device ID
+  uploadedAt: string;
+  ownerDisplayName: string;
+}
+```
 
 ---
 
 ## Core Features
 
-### 1. Authentication & Authorization
-- **Multi-role System**: Super Admin, Admin, Manager, User
-- **Secure Login**: Email-based authentication
-- **Session Management**: Persistent login state
-- **Role-based Access Control**: Feature access based on user roles
+### 1. File Upload & Organization
+- Drag-and-drop or file picker upload
+- Supports PDF, DOCX, XLSX, PPTX, TXT, CSV, PNG, JPG, JPEG, GIF, SVG, MP4, MOV, AVI, ZIP
+- Files automatically placed in Format_Folders (PDF/, DOCX/, MP4/, etc.)
+- Duplicate names resolved with numeric suffix (e.g. `report (1).pdf`)
+- Upload progress indicator per file
 
-### 2. Dashboard
-- **Personalized Greeting**: Welcome message with user name
-- **Department Badge**: Visual department identification
-- **Statistics Cards**: Key metrics at a glance
-- **Work History Table**: Recent work entries with edit/delete
-- **Interactive Calendar**: Date selection with file indicators
-- **Attendance Widget**: Quick sign-in/sign-out access
-- **File Upload Zone**: Document and video upload
-- **Workstation Selector**: Access to Word, Sheet, and Design editors
+### 2. Global File Search
+- Single search bar in the navigation header, available on all pages
+- Searches by file name, format/type, and upload date
+- Partial and case-insensitive matching
+- Results returned within 500ms for up to 10,000 files
+- Clicking a result opens the file immediately
 
-### 3. Reports Module
-#### Report Creation
-- **Rich Text Editor**: Format content with styling
-- **Period Selection**: Daily, Weekly, Monthly, Quarterly, Annual
-- **Tag System**: Categorize reports with custom tags
-- **File Attachments**: Upload supporting documents
-- **Department Association**: Auto-linked to user's department
+### 3. Calendar Upload History
+- Monthly calendar grid with highlights on dates that have uploaded files
+- Click a date to see all files uploaded that day, sorted by time
+- Click any file in the date list to open it
+- Navigate between months with previous/next controls
 
-#### Report Management
-- **Search & Filter**: Find reports by title, content, tags, or period
-- **Preview Mode**: View report details before approval
-- **Edit Capability**: Modify pending or rejected reports
-- **Delete Function**: Remove pending or rejected reports
-- **Print Support**: Optimized print layout
-- **Download**: Export reports as text files
-- **Share via Messaging**: Send report links internally
+### 4. One-Click File Access
+- Click any file in the list, search results, or calendar to open it
+- Local files open with the OS default application via Electron
+- Cloud files open in the cloud provider's native viewer in-app
+- ORGs-native files (.orgs-doc, .orgs-sheet, .orgs-design) open in the built-in editors
 
-#### Approval Workflow
-- **Pending Status**: New reports await approval
-- **Super Admin Review**: Preview and evaluate reports
-- **Approve Action**: Lock report from further editing
-- **Reject with Feedback**: Provide improvement suggestions
-- **Re-submission**: Authors can edit and resubmit rejected reports
-- **Approval History**: Track who approved/rejected and when
+### 5. Cloud Backup
+- Google Drive and Microsoft OneDrive supported as backup destinations
+- Files backed up automatically in the background after upload
+- Backup Queue with retry policy (exponential backoff, max 5 attempts)
+- Cloud folder mirrors the local Format_Folder structure
 
-### 4. Attendance System
-#### Employee Features
-- **Automatic Sign-In Dialog**: Appears 6 AM - 10 AM on workdays
-- **Acknowledgement Checkbox**: Confirm attendance declaration
-- **Manual Sign-In**: Dashboard widget for manual entry
-- **Late Tracking**: Automatic detection of arrivals after 9:00 AM
-- **Sign-Out Dialog**: Appears at 5:00 PM
-- **Overtime Management**: Add 1-3 hours of overtime
-- **Floating Timer**: Visual countdown during overtime
-- **15-Minute Reminders**: Non-intrusive notifications
-- **Early Sign-Out**: Option to leave before scheduled time
+### 6. Weekend Backup Reminders
+- Detects when the last backup was more than 7 days ago
+- Shows a persistent in-app alert on Saturday or Sunday when offline
+- "Back up now" button initiates immediate backup
+- Reminders can be disabled in settings
 
-#### Admin Features
-- **Attendance Dashboard**: View all daily attendance records
-- **Date Picker**: Historical attendance review
-- **Search & Filter**: Find records by name, department, or status
-- **Statistics Cards**: Present, On-time, Late, Overtime, Signed-out counts
-- **Export to CSV**: Download attendance data
-- **Approval System**: Review and approve/reject attendance
-- **Rejection Feedback**: Provide reasons for rejection
+### 7. Cloud Account Security
+- Google or Microsoft account login is the primary security mechanism
+- All file operations require a valid authenticated session
+- Access tokens held in memory only; refresh tokens stored in OS keychain via Electron safeStorage
+- File downloads revoked if cloud account authentication fails
+- Session expiry triggers immediate logout and access revocation
 
-#### Approval Workflow
-- **Pending Status**: All attendance requires approval
-- **Super Admin Review**: Evaluate attendance records
-- **Approve Action**: Confirm attendance validity
-- **Reject with Reason**: Explain attendance issues
-- **Approval History**: Track approval actions
+### 8. Cross-Device File Restoration
+- Log in on any device with the same cloud account to restore all files
+- Format_Folder structure recreated automatically
+- File ownership metadata preserved through backup and restore
+- Storage configuration (local root path) restored from cloud config file
+- Progress indicator shown during restoration
 
-### 5. Department Management
-#### Structure
-- **6 Main Departments**: Configurable department hierarchy
-- **Subdepartments**: Nested organizational structure
-- **Color Coding**: Visual department identification
-- **Department Reports**: Filtered view by department/subdepartment
+### 9. File Management
+- Rename files from within the app
+- Delete files with confirmation prompt
+- Move files between Format_Folders
+- All operations update both the Storage_Provider and File_Index atomically
 
-#### Admin Controls
-- **Add Departments**: Create new departments
-- **Add Subdepartments**: Create nested structures
-- **Delete Departments**: Remove departments (with confirmation)
-- **Visual Tree**: Hierarchical department display
-- **Department Statistics**: Report counts by period
-
-### 6. User Management
-#### User Administration
-- **Create Users**: Add new employees
-- **Edit Users**: Modify user information
-- **Reset Password**: Admin-initiated password reset
-- **Delete Users**: Remove user accounts
-- **Department Assignment**: Link users to departments
-- **Role Assignment**: Set user permissions
-- **Bulk Operations**: Manage multiple users
-
-#### User Profiles
-- **Profile View**: Display user information
-- **Avatar Support**: Custom profile pictures
-- **Job Title**: Display user role
-- **Department Badge**: Show department affiliation
-- **Online Status**: Real-time presence indicator
-- **Profile View Tracking**: See who viewed your profile
-- **Anonymous Admin Viewing**: Super Admin views without tracking
-
-### 7. Messaging System
-#### Features
-- **Real-time Messaging**: Instant communication
-- **Online-Only Display**: Show only online colleagues
-- **Cross-Department**: Message users from all departments
-- **Conversation History**: Persistent chat records
-- **Unread Badges**: Visual notification indicators
-- **File Sharing**: Attach documents to messages
-- **Report Sharing**: Send report links via chat
-- **User Search**: Find colleagues quickly
-- **Profile Access**: Click avatar to view profile
-- **Status Indicators**: Online, Away, Offline
-
-#### Message Notifications
-- **Unread Count**: Badge in header
-- **Real-time Updates**: Instant message delivery
-- **Profile View Notifications**: Alert when profile is viewed
-
-### 8. Search Functionality
-#### Global Search
-- **Universal Search Bar**: Available in header
-- **Multi-type Search**: Documents, Reports, Messages
-- **Autosuggestions**: Smart search suggestions
-- **Recent Searches**: Quick access to previous queries
-- **Search Filters**: Refine by type, department, date
-- **Result Highlighting**: Matched terms highlighted
-- **AI Summary**: Generate summaries of search results
-
-#### Search Features
-- **Fuzzy Matching**: Find results with typos
-- **Search Caching**: Faster repeat searches
-- **URL Management**: Shareable search URLs
-- **Search History**: Track search patterns
-
-### 9. Events Calendar
-#### Event Management
-- **Calendar View**: Visual event display
-- **Create Events**: Add new events (permission-based)
-- **Event Details**: Title, description, date, time, location
-- **View by Date**: Filter events by date
-- **Upcoming Events**: List of future events
-- **Status Tracking**: Event status management
-- **Department Events**: Department-specific events
-
-### 10. Workstation Tools
+### 10. Productivity Tools
 #### Word Editor
-- **Rich Text Editing**: Bold, italic, underline, headings
-- **Text Alignment**: Left, center, right, justify
-- **Lists**: Bullet and numbered lists
-- **Undo/Redo**: Edit history management
-- **Save to Storage**: Persist documents
+- Rich text editing: bold, italic, underline, headings, alignment, lists
+- Undo/redo, save to storage (registered in File_Index)
 
 #### Sheet Editor
-- **Spreadsheet Grid**: 10x10 cell grid
-- **Formula Support**: SUM, AVERAGE, COUNT, MIN, MAX
-- **Cell Editing**: Click to edit cells
-- **Auto-calculation**: Real-time formula evaluation
-- **Save to Storage**: Persist spreadsheets
+- Spreadsheet grid with cell editing
+- Formula support: SUM, AVERAGE, COUNT, MIN, MAX
+- Real-time auto-calculation, save to storage
 
 #### Design Editor
-- **Canvas Drawing**: Freehand drawing tool
-- **Color Picker**: Custom color selection
-- **Brush Size**: Adjustable stroke width
-- **Clear Canvas**: Reset drawing
-- **Notes Section**: Add text notes
-- **Save to Storage**: Persist designs
+- Freehand canvas drawing
+- Color picker, adjustable brush size, canvas clear
+- Notes section, save to storage
 
-### 11. Settings & Customization
-#### Profile Settings
-- **Avatar Upload**: Custom profile picture
-- **Personal Information**: View name, email, job title
-- **Department Display**: Show department affiliation
+#### Video Player
+- In-app playback for uploaded video files (MP4, MOV, AVI)
 
-#### Security Settings
-- **Change Password**: Update user password
-- **Password Validation**: Secure password requirements
+#### Events Calendar
+- Create and view events with title, description, date, time, location
+- Filter by date, upcoming events list
 
-#### Appearance Settings
-- **Theme Color**: Custom color picker
-- **Preset Colors**: Quick color selection
-- **Theme Persistence**: Save preferences
-
-### 12. Admin Panel
-#### Approval Management
-- **Attendance Approvals**: Review pending attendance
-- **Report Approvals**: Review pending reports (via report detail page)
-- **Bulk Actions**: Approve/reject multiple items
-- **Feedback System**: Provide rejection reasons
-
-#### System Management
-- **Export Settings**: Backup system configuration
-- **Import Settings**: Restore from backup
-- **Reset to Default**: Restore factory settings
-- **System Statistics**: User, department, report counts
-
----
-
-## User Roles & Permissions
-
-### Super Admin (Master Admin)
-**Full System Access**
-- View and manage all departments
-- Create, edit, delete users
-- Approve/reject all attendance records
-- Approve/reject all reports
-- Access admin panel
-- View all reports across departments
-- Anonymous profile viewing
-- System configuration management
-- Export/import system data
-
-### Admin
-**Department Management**
-- Manage users in assigned department
-- View department reports
-- Create and manage reports
-- Access to department analytics
-
-### Manager
-**Team Oversight**
-- View team reports
-- Create reports
-- Manage team communications
-- View team attendance
-
-### User (Employee)
-**Standard Access**
-- Create reports (requires approval)
-- Sign in/out attendance (requires approval)
-- View approved reports in department
-- Send/receive messages
-- View events
-- Use workstation tools
-- Customize personal settings
+#### Messaging
+- Internal messaging with file sharing
+- Online status indicators, unread badges
 
 ---
 
 ## Module Documentation
 
-### Authentication Module
-**Location**: `src/context/AuthContext.tsx`
+### Document_Manager
+**Responsibilities**: File upload, Format_Folder creation, rename, move, delete, cloud backup dispatch
 
-**Features**:
-- User login/logout
-- Session persistence
-- Role checking (isSuperAdmin, isAdmin)
-- User profile updates
-- Password management
-
-**Key Functions**:
 ```typescript
-login(email: string, password: string): Promise<void>
-logout(): void
-updateUser(updates: Partial<User>): void
+interface DocumentManager {
+  uploadFile(file: File, config: StorageProviderConfig): Promise<FileIndexEntry>;
+  deleteFile(fileId: string): Promise<void>;
+  renameFile(fileId: string, newName: string): Promise<FileIndexEntry>;
+  moveFile(fileId: string, targetFolder: string): Promise<FileIndexEntry>;
+  queueCloudBackup(fileId: string): Promise<void>;
+  restoreFromCloud(accountId: string): Promise<RestorationResult>;
+}
 ```
 
-### Reports Module
-**Location**: `src/context/ReportsContext.tsx`
+### Search_Engine
+**Responsibilities**: File index querying, tokenization, ranking
 
-**Features**:
-- CRUD operations for reports
-- Approval workflow
-- Period filtering
-- Tag management
-- File attachments
-- Search functionality
-
-**Key Functions**:
 ```typescript
-createReport(data: CreateReportInput): Promise<Report>
-updateReport(id: string, data: UpdateReportInput): Promise<Report>
-deleteReport(id: string): Promise<void>
-approveReport(id: string): Promise<Report>
-rejectReport(id: string, reason: string): Promise<Report>
+interface SearchEngine {
+  indexFile(entry: FileIndexEntry): void;
+  removeFromIndex(fileId: string): void;
+  query(q: SearchQuery): SearchResult[];
+  rebuildIndex(entries: FileIndexEntry[]): void;
+}
 ```
 
-### Attendance Module
-**Location**: `src/context/AttendanceContext.tsx`
+### Cloud_Security
+**Responsibilities**: OAuth 2.0 token lifecycle, session verification, access revocation
 
-**Features**:
-- Sign-in/sign-out tracking
-- Overtime management
-- Automatic dialogs
-- Approval workflow
-- Late arrival detection
-
-**Key Functions**:
 ```typescript
-signIn(): void
-signOut(overtimeHours?: number): void
-addOvertime(hours: number): void
+interface CloudSecurity {
+  authenticate(provider: CloudProvider): Promise<AuthSession>;
+  verifySession(session: AuthSession): Promise<boolean>;
+  refreshIfExpiring(session: AuthSession): Promise<AuthSession>;
+  revokeSession(session: AuthSession): Promise<void>;
+  isAuthenticated(): boolean;
+}
 ```
 
-### Messaging Module
-**Location**: `src/context/MessagesContext.tsx`
+### Backup_Reminder_System
+**Responsibilities**: Weekend backup reminders, last backup tracking
 
-**Features**:
-- Real-time messaging
-- Conversation management
-- Online status tracking
-- Unread count
-- File/report sharing
-
-**Key Functions**:
 ```typescript
-sendMessage(conversationId: string, content: string): void
-createConversation(participants: string[], names: string[]): string
-markAsRead(conversationId: string): void
-getUserStatus(userId: string): UserStatus
+interface BackupReminderSystem {
+  checkAndNotify(): Promise<void>;
+  getLastBackupTimestamp(): Date | null;
+  updateLastBackupTimestamp(): void;
+  isRemindersEnabled(): boolean;
+  setRemindersEnabled(enabled: boolean): void;
+}
 ```
 
-### Search Module
-**Location**: `src/context/SearchContext.tsx`
-
-**Features**:
-- Multi-type search
-- Autosuggestions
-- Search caching
-- Result filtering
-- AI summarization
-
-**Key Functions**:
+### Electron IPC Bridge (`window.electronAPI`)
 ```typescript
-executeSearch(query: string): void
-updateQuery(query: string): void
-applyFilters(filters: SearchFilters): void
+interface ElectronAPI {
+  selectDirectory(): Promise<string | null>;
+  readFile(path: string): Promise<Buffer>;
+  writeFile(path: string, data: Buffer): Promise<void>;
+  deleteFile(path: string): Promise<void>;
+  renameFile(oldPath: string, newPath: string): Promise<void>;
+  ensureDir(path: string): Promise<void>;
+  openWithDefault(path: string): Promise<void>;
+  startOAuthFlow(provider: 'google' | 'microsoft'): Promise<OAuthTokens>;
+  refreshToken(provider: 'google' | 'microsoft', refreshToken: string): Promise<OAuthTokens>;
+  storeSecret(key: string, value: string): Promise<void>;
+  retrieveSecret(key: string): Promise<string | null>;
+  deleteSecret(key: string): Promise<void>;
+  showNotification(title: string, body: string): Promise<void>;
+}
 ```
 
 ---
@@ -465,49 +328,47 @@ applyFilters(filters: SearchFilters): void
 ### Prerequisites
 - Node.js 18+ or Bun runtime
 - npm, yarn, or bun package manager
-- Modern web browser (Chrome, Firefox, Safari, Edge)
 
-### Installation Steps
+### Development Setup
 
 1. **Clone the Repository**
 ```bash
 git clone <repository-url>
-cd casi-360
+cd orgs
 ```
 
 2. **Install Dependencies**
 ```bash
 npm install
-# or
-yarn install
-# or
-bun install
 ```
 
-3. **Start Development Server**
+3. **Start Development (Electron + React)**
+```bash
+npm run electron:dev
+```
+
+4. **React-only (browser preview)**
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-bun dev
 ```
 
-4. **Access Application**
-```
-http://localhost:8081
-```
+### Build Desktop Installer
 
-### Build for Production
 ```bash
-npm run build
-npm run preview
+# Windows (.exe)
+npm run electron:build:win
+
+# macOS (.dmg)
+npm run electron:build:mac
+
+# Linux (.AppImage / .deb)
+npm run electron:build:linux
 ```
 
 ### Run Tests
 ```bash
-npm run test
-npm run test:watch
+npm run test          # single run
+npm run test:watch    # watch mode
 ```
 
 ---
@@ -515,292 +376,99 @@ npm run test:watch
 ## Development Guidelines
 
 ### Code Style
-- Use TypeScript for type safety
-- Follow React best practices
-- Use functional components with hooks
-- Implement proper error handling
-- Write descriptive variable names
-- Add comments for complex logic
+- TypeScript throughout — no `any` types
+- Functional React components with hooks
+- All file operations go through the IPC bridge, never direct Node.js calls from renderer
+- Keep renderer process free of privileged APIs
 
 ### Component Structure
 ```typescript
 // 1. Imports
-import React from 'react';
-import { useContext } from '@/context/...';
+import { useDocumentManager } from '@/lib/electron/electronBridge';
 
-// 2. Types/Interfaces
-interface ComponentProps {
-  // ...
-}
+// 2. Types
+interface ComponentProps { ... }
 
 // 3. Component
 export function Component({ props }: ComponentProps) {
-  // 4. Hooks
-  const context = useContext();
-  const [state, setState] = useState();
-  
-  // 5. Effects
-  useEffect(() => {
-    // ...
-  }, []);
-  
-  // 6. Handlers
-  const handleAction = () => {
-    // ...
-  };
-  
-  // 7. Render
-  return (
-    // JSX
-  );
+  // hooks → effects → handlers → render
 }
 ```
 
-### State Management
-- Use Context API for global state
-- Use local state for component-specific data
-- Implement custom hooks for reusable logic
-- Keep state as close to usage as possible
+### IPC Security Rules
+- Never enable `nodeIntegration` in renderer
+- Always use `contextBridge` in preload.ts
+- Validate all IPC inputs in the main process before executing
 
-### Styling Guidelines
-- Use Tailwind utility classes
-- Follow mobile-first approach
-- Maintain consistent spacing
-- Use theme colors from design system
-- Implement dark mode support
-
----
-
-## API Reference
-
-### LocalStorage Schema
-
-#### Users
-```typescript
-Key: 'users'
-Value: User[]
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-  role: 'super_admin' | 'admin' | 'manager' | 'user';
-  departmentId: string;
-  subdepartmentId?: string;
-  jobTitle: string;
-  avatar?: string;
-  themeColor?: string;
-}
-```
-
-#### Reports
-```typescript
-Key: 'casi360_reports'
-Value: { reports: Report[], lastSync: string }
-
-interface Report {
-  id: string;
-  title: string;
-  content: string;
-  period: Period;
-  departmentId: string;
-  subdepartmentId?: string;
-  authorId: string;
-  authorName: string;
-  tags: string[];
-  attachments: FileAttachment[];
-  createdAt: string;
-  updatedAt: string;
-  approvalStatus: 'pending' | 'approved' | 'rejected';
-  approvedBy?: string;
-  approvedAt?: string;
-  rejectionReason?: string;
-}
-```
-
-#### Attendance
-```typescript
-Key: 'attendance_records'
-Value: AttendanceRecord[]
-
-interface AttendanceRecord {
-  id: string;
-  userId: string;
-  userName: string;
-  userJobTitle: string;
-  userDepartment: string;
-  date: string;
-  signInTime: string;
-  signOutTime?: string;
-  overtimeHours: number;
-  status: 'signed-in' | 'signed-out' | 'overtime';
-  approvalStatus: 'pending' | 'approved' | 'rejected';
-  approvedBy?: string;
-  approvedAt?: string;
-  rejectionReason?: string;
-}
-```
-
-#### Messages
-```typescript
-Key: 'conversations'
-Value: Conversation[]
-
-interface Conversation {
-  id: string;
-  participants: string[];
-  participantNames: string[];
-  lastMessage: string;
-  lastMessageTime: string;
-  unreadCount: number;
-}
-
-Key: 'messages_{conversationId}'
-Value: Message[]
-
-interface Message {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  senderName: string;
-  content: string;
-  timestamp: string;
-}
-```
+### Styling
+- Tailwind utility classes
+- Mobile-first, then desktop breakpoints
+- Use existing design system tokens (colors, spacing, typography)
 
 ---
 
 ## Security & Data Management
 
-### Data Security
-- **Client-side Storage**: All data stored in browser LocalStorage
-- **No Backend**: Fully client-side application
-- **Session Management**: Persistent login state
-- **Password Hashing**: Passwords stored securely (in production, use proper hashing)
+### Authentication
+- Cloud account (Google / Microsoft) is the only login method
+- Access tokens: renderer memory only, never written to disk
+- Refresh tokens: encrypted via `electron.safeStorage`, stored at `<userData>/tokens/<provider>.enc`
+- Device ID: generated once, stored in safeStorage permanently
+
+### Token Lifecycle
+
+| Token | Storage | Lifetime | Refresh |
+|---|---|---|---|
+| Access Token | Renderer memory | ~1 hour | 5 min before expiry |
+| Refresh Token | safeStorage encrypted file | Long-lived | On access token expiry |
+| Device ID | safeStorage | Permanent | Never |
+
+### File Access Control
+- All routes wrapped in `AuthGuard` — unauthenticated users see only the login screen
+- On logout or session expiry: access token cleared, all file operations blocked, user redirected to login
+- Cloud file downloads rejected if auth token cannot be verified
 
 ### Data Persistence
-- **LocalStorage**: Primary data storage
-- **Automatic Sync**: Changes saved immediately
-- **Export/Import**: Backup and restore functionality
-- **Data Validation**: Input validation before storage
+- **File_Index**: IndexedDB (renderer process) — survives app restarts
+- **Backup Queue**: IndexedDB — survives crashes, retried on next launch
+- **Storage Config**: localStorage — local root path and cloud provider settings
+- **Auth Tokens**: Electron safeStorage — OS-level encryption
 
-### Privacy Features
-- **Profile View Tracking**: Users notified of profile views
-- **Anonymous Admin**: Super Admin can view profiles anonymously
-- **Online Status**: Real-time presence indicators
-- **Message Privacy**: Conversations only visible to participants
-
-### Best Practices
-1. **Regular Backups**: Export system settings regularly
-2. **Data Validation**: Validate all user inputs
-3. **Error Handling**: Graceful error recovery
-4. **User Feedback**: Clear success/error messages
-5. **Audit Trail**: Track approval actions with timestamps
-
----
-
-## Demo Accounts
-
-### Super Admin
-- **Email**: super_admin@casi360.com
-- **Password**: admin123
-- **Access**: Full system access
-
-### Department Managers
-1. **IT Support**: tunde.bakare@casi360.com / password123
-2. **HR**: amaka.obi@casi360.com / password123
-3. **Finance**: kwame.mensah@casi360.com / password123
-4. **Operations**: fatima.hassan@casi360.com / password123
-5. **Marketing**: john.doe@casi360.com / password123
-6. **Customer Service**: jane.smith@casi360.com / password123
-
----
-
-## Deployment
-
-### Production Build
-```bash
-npm run build
-```
-
-### Deployment Options
-1. **Static Hosting**: Netlify, Vercel, GitHub Pages
-2. **CDN**: Cloudflare, AWS CloudFront
-3. **Traditional Hosting**: Apache, Nginx
-
-### Environment Configuration
-- Configure base URL in `vite.config.ts`
-- Set environment variables for production
-- Optimize build for performance
-
----
-
-## Support & Maintenance
-
-### Troubleshooting
-- Clear browser cache if issues occur
-- Check browser console for errors
-- Verify LocalStorage is enabled
-- Ensure JavaScript is enabled
-
-### Browser Compatibility
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-
-### Performance Optimization
-- Lazy loading for routes
-- Code splitting
-- Image optimization
-- Caching strategies
+### Backup & Restore
+- Cloud backup folder: `ORGs Backup/` in the user's Google Drive or OneDrive
+- Format_Folder structure mirrored in cloud
+- `orgs-config.json` stored in cloud root — contains local storage config for restoration
+- Ownership metadata stored as custom file properties on each cloud file
 
 ---
 
 ## Future Enhancements
 
-### Planned Features
-1. Backend API integration
-2. Real-time WebSocket communication
-3. Advanced analytics dashboard
-4. Mobile application
-5. Email notifications
-6. Document version control
-7. Advanced reporting tools
-8. Integration with external systems
-
-### Scalability Considerations
-- Database migration from LocalStorage
-- API development
-- Authentication service
-- File storage service
-- Notification service
+1. Multi-account support (switch between Google and Microsoft simultaneously)
+2. File versioning and history
+3. Shared folders between users
+4. Advanced search filters (size range, date range, tags)
+5. Bulk file operations (multi-select upload, delete, move)
+6. Mobile companion app for remote file access
 
 ---
 
 ## License & Credits
 
 ### Project Information
-- **Project Name**: CASI 360
-- **Version**: 1.0.0
-- **Description**: Care and Support Initiative 360 - Enterprise Management System
+- **Project Name**: ORGs — Organizational Reports Gathering System
+- **Version**: 2.0.0
+- **Description**: Desktop file organization system with cloud backup
 
 ### Technologies Used
-- React, TypeScript, Vite
+- Electron, React, TypeScript, Vite
 - Tailwind CSS, shadcn/ui, Radix UI
-- TanStack Query, React Router
-- Framer Motion, Lucide Icons
-- date-fns, TipTap
+- Google Drive API, Microsoft Graph API
+- TipTap, Canvas API, date-fns
+- Vitest, fast-check
 
 ---
 
-## Contact & Support
-
-For technical support, feature requests, or bug reports, please contact the development team.
-
----
-
-**Document Version**: 1.0  
-**Last Updated**: 2026-02-26  
-**Maintained By**: CASI 360 Development Team
+**Document Version**: 2.0
+**Last Updated**: 2026-04-02
+**Maintained By**: ORGs Development Team

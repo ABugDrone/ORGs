@@ -83,12 +83,12 @@ export interface DateFilesIndex {
 
 class StorageService {
   private readonly KEYS = {
-    WORK_ENTRIES: 'casi360_work_entries',
-    DOCUMENTS: 'casi360_documents',
-    SPREADSHEETS: 'casi360_spreadsheets',
-    DESIGNS: 'casi360_designs',
-    FILES: 'casi360_files',
-    DATE_FILES_INDEX: 'casi360_date_files_index',
+    WORK_ENTRIES: 'orgs_work_entries',
+    DOCUMENTS: 'orgs_documents',
+    SPREADSHEETS: 'orgs_spreadsheets',
+    DESIGNS: 'orgs_designs',
+    FILES: 'orgs_files',
+    DATE_FILES_INDEX: 'orgs_date_files_index',
   };
 
   // Work Entries
