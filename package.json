@@ -2,12 +2,18 @@
   "name": "orgs",
   "productName": "ORGs",
   "private": true,
-  "version": "2.0.0",
-  "description": "Organizational Reports Gathering System",
+  "version": "1.0.0-beta",
+  "description": "Organizational Reports Gathering System — built by DroneBug Technologies",
+  "author": {
+    "name": "ABugDrone",
+    "email": "dronebug@toko.academy",
+    "url": "https://github.com/ABugDrone"
+  },
   "type": "module",
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "vite",
+    "build": "vite build",
     "build:electron:main": "node scripts/build-electron.mjs",
     "electron:dev": "node scripts/build-electron.mjs && electron .",
     "electron:build": "vite build && node scripts/build-electron.mjs && electron-builder",
@@ -21,8 +27,9 @@
     "test:watch": "vitest"
   },
   "build": {
-    "appId": "com.orgs.app",
+    "appId": "com.dronebug.orgs",
     "productName": "ORGs",
+    "copyright": "Copyright © 2026 DroneBug Technologies",
     "directories": {
       "output": "release"
     },
@@ -31,25 +38,43 @@
       "dist-electron/**/*.cjs",
       "dist-electron/**/*.cjs.map",
       "!dist-electron/**/*.js",
-      "!dist-electron/**/*.js.map"
+      "!dist-electron/**/*.js.map",
+      "!node_modules/**/*"
     ],
+    "asar": true,
+    "asarUnpack": [],
+    "extraMetadata": {
+      "version": "1.0.0-beta"
+    },
     "win": {
-      "target": "nsis",
-      "icon": "public/favicon.ico"
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "icon": "public/ORGs.png",
+      "artifactName": "ORGs-${version}-win-portable.${ext}"
     },
     "mac": {
-      "target": "dmg",
-      "icon": "public/favicon.ico"
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+      "icon": "public/ORGs.png",
+      "category": "public.app-category.productivity",
+      "artifactName": "ORGs-${version}-mac.${ext}",
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "title": "ORGs ${version}",
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
     },
     "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "icon": "public/favicon.ico"
+      "target": ["AppImage", "deb"],
+      "icon": "public/ORGs.png",
+      "category": "Office",
+      "artifactName": "ORGs-${version}-linux.${ext}"
     },
     "publish": {
-      "provider": "github"
+      "provider": "github",
+      "owner": "ABugDrone",
+      "repo": "ORGs"
     }
   },
   "dependencies": {

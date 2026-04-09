@@ -1,0 +1,113 @@
+name: Build ORGs Installers
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Windows (.exe)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Electron main process
+        run: node scripts/build-electron.mjs
+
+      - name: Build React app
+        run: npm run build
+
+      - name: Package Windows installer
+        run: npx electron-builder --win --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ORGs-Windows
+          path: release/*.exe
+
+  build-mac:
+    name: macOS (.dmg)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Electron main process
+        run: node scripts/build-electron.mjs
+
+      - name: Build React app
+        run: npm run build
+
+      - name: Package macOS installer
+        run: npx electron-builder --mac --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ORGs-macOS
+          path: release/*.dmg
+
+  release:
+    name: Create GitHub Release
+    needs: [build-windows, build-mac]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ORGs-Windows
+          path: release/
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ORGs-macOS
+          path: release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ORGs Beta ${{ github.ref_name }}
+          body: |
+            ## ORGs Beta ${{ github.ref_name }}
+
+            **Organizational Reports Gathering System**
+            Built by DroneBug Technologies in collaboration with Toko Academy.
+
+            ### Downloads
+            - **Windows**: `ORGs-Setup-*-win.exe`
+            - **macOS**: `ORGs-*-mac.dmg`
+
+            ### What's New
+            See [CHANGELOG](https://github.com/ABugDrone/ORGs/blob/main/CHANGELOG.md) for details.
+
+            ---
+            Built by [ABugDrone](https://github.com/ABugDrone) | Contact: +234 703 571 6349
+          files: release/*
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
