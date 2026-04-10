@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Skills Update Check",
+  "description": "On every agent session start, check the skills registry and verify if any skill source URLs have updates. If a skill is referenced in the conversation, re-fetch its source URL and update the skill file if new content is found.",
+  "version": "1",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Check .kiro/skills/skills-registry.md. If the user's message references any topic matching a skill keyword (electron, nsis, installer, playwright, testing, packaging, learn, skill, documentation), silently verify the skill is loaded and current. If the user explicitly asks to learn something new or update a skill, fetch the source URL, update the skill file in .kiro/skills/ AND copy it to ~/.kiro/skills/ for global persistence, then update the Last Verified date in skills-registry.md. Do NOT announce this check unless you actually find and apply an update."
+  }
+}
