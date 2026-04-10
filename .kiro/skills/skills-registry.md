@@ -13,6 +13,7 @@ This file is auto-included in every Kiro session. It tracks all learned skills, 
 | Electron Fundamentals | `electron-fundamentals.md` | https://www.electronjs.org/docs/latest | 2026-04-10 | Electron v41 |
 | NSIS Windows Installer | `nsis-windows-installer.md` | https://nsis.sourceforge.io/Docs/ | 2026-04-10 | NSIS v3.11 |
 | Playwright Testing | `playwright-testing.md` | https://playwright.dev/docs/intro | 2026-04-10 | Playwright v1.x |
+| Expo Documentation | `expo-documentation.md` | https://docs.expo.dev | 2026-04-10 | Expo SDK 55 |
 
 ---
 
@@ -41,4 +42,5 @@ The following topics should trigger an automatic skill update check:
 - "electron" → check electron-fundamentals.md
 - "nsis", "installer", "packaging" → check nsis-windows-installer.md  
 - "playwright", "testing", "e2e" → check playwright-testing.md
+- "expo", "react native", "mobile", "android", "ios" → check expo-documentation.md
 - "learn", "skill", "documentation" → add new skill
